@@ -2,13 +2,16 @@ import { headers } from 'next/headers';
 import { ImageResponse } from 'next/og';
 
 // Configuration exports
-export const runtime = 'edge';
 export const alt = 'Kortix Suna';
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = 'image/png';
+
+// Required for static export
+export const dynamic = 'force-static';
+export const revalidate = false;
 
 export default async function Image() {
   try {

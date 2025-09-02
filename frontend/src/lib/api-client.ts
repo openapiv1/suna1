@@ -1,7 +1,18 @@
 import { createClient } from '@/lib/supabase/client';
 import { handleApiError, handleNetworkError, ErrorContext, ApiError } from './error-handler';
+import { isUnifiedMode } from './config';
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+const getApiUrl = (): string => {
+  // In unified mode, API is served from the same origin
+  if (isUnifiedMode() && typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
+  }
+  
+  // Default to environment variable
+  return process.env.NEXT_PUBLIC_BACKEND_URL || '';
+};
+
+const API_URL = getApiUrl();
 
 export interface ApiClientOptions {
   showErrors?: boolean;

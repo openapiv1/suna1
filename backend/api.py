@@ -3,7 +3,8 @@ load_dotenv()
 
 from fastapi import FastAPI, Request, HTTPException, Response, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from services import redis
 import sentry
 from contextlib import asynccontextmanager
@@ -15,6 +16,8 @@ import asyncio
 from utils.logger import logger, structlog
 import time
 from collections import OrderedDict
+import os
+from pathlib import Path
 
 from pydantic import BaseModel
 import uuid
@@ -219,6 +222,49 @@ async def health_check():
 
 
 app.include_router(api_router, prefix="/api")
+
+# Unified Mode: Serve frontend static files from backend
+UNIFIED_MODE = os.getenv("UNIFIED_MODE", "false").lower() == "true"
+if UNIFIED_MODE:
+    # Path to the built frontend files
+    frontend_build_path = Path(__file__).parent.parent / "frontend" / "out"
+    
+    if frontend_build_path.exists():
+        # Serve static assets
+        app.mount("/static", StaticFiles(directory=str(frontend_build_path / "_next" / "static")), name="static")
+        app.mount("/_next", StaticFiles(directory=str(frontend_build_path / "_next")), name="next")
+        
+        # Catch-all route for frontend SPA routing
+        @app.get("/{full_path:path}")
+        async def serve_frontend(full_path: str):
+            """Serve frontend files and handle SPA routing"""
+            # Skip API routes
+            if full_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="API route not found")
+            
+            # Try to serve the exact file first
+            file_path = frontend_build_path / full_path
+            if file_path.is_file():
+                return FileResponse(file_path)
+            
+            # Try with .html extension
+            html_path = frontend_build_path / f"{full_path}.html"
+            if html_path.is_file():
+                return FileResponse(html_path)
+            
+            # For all other routes (SPA routing), serve index.html
+            index_path = frontend_build_path / "index.html"
+            if index_path.is_file():
+                return FileResponse(index_path)
+            
+            raise HTTPException(status_code=404, detail="Page not found")
+        
+        logger.info("🚀 Unified mode enabled - serving frontend from backend")
+        logger.info(f"📁 Frontend build path: {frontend_build_path}")
+    else:
+        logger.warning("⚠️ Unified mode enabled but frontend build not found")
+        logger.warning(f"📁 Expected path: {frontend_build_path}")
+        logger.warning("💡 Run 'npm run build' in frontend directory first")
 
 
 if __name__ == "__main__":
