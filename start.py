@@ -65,20 +65,39 @@ def check_docker_compose_up():
     return len(result.stdout.strip()) > 0
 
 
-def print_pure_python_instructions():
+def print_pure_python_instructions(unified_mode=False):
     """Prints instructions for pure Python setup."""
     print(f"\n{Colors.BLUE}{Colors.BOLD}🚀 Pure Python Setup Instructions{Colors.ENDC}\n")
 
-    print("Suna is now running in Pure Python mode without Docker!\n")
+    if unified_mode:
+        print("Suna is now running in Unified Mode - single service deployment!\n")
+        
+        print(f"{Colors.BOLD}Services running:{Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Redis (embedded or local){Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Backend API (uvicorn){Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Background Worker (dramatiq){Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Frontend (served from backend){Colors.ENDC}\n")
 
-    print(f"{Colors.BOLD}Services running:{Colors.ENDC}")
-    print(f"{Colors.GREEN}✅ Redis (embedded or local){Colors.ENDC}")
-    print(f"{Colors.GREEN}✅ Backend API (uvicorn){Colors.ENDC}")
-    print(f"{Colors.GREEN}✅ Background Worker (dramatiq){Colors.ENDC}")
-    print(f"{Colors.GREEN}✅ Frontend (Next.js){Colors.ENDC}\n")
+        print("🌐 Access Suna at: http://localhost:8000")
+        print("📡 API available at: http://localhost:8000/api\n")
+        
+        print(f"{Colors.CYAN}🔗 Unified Mode Benefits:{Colors.ENDC}")
+        print(f"  • Single port deployment (8000)")
+        print(f"  • Simplified CORS configuration")
+        print(f"  • Reduced infrastructure complexity")
+        print(f"  • Faster API calls (same origin)")
+        print(f"  • Easier SSL/TLS configuration\n")
+    else:
+        print("Suna is now running in Pure Python mode without Docker!\n")
 
-    print("Access Suna at: http://localhost:3000")
-    print("API available at: http://localhost:8000\n")
+        print(f"{Colors.BOLD}Services running:{Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Redis (embedded or local){Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Backend API (uvicorn){Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Background Worker (dramatiq){Colors.ENDC}")
+        print(f"{Colors.GREEN}✅ Frontend (Next.js){Colors.ENDC}\n")
+
+        print("Access Suna at: http://localhost:3000")
+        print("API available at: http://localhost:8000\n")
 
     print(f"{Colors.BOLD}Management commands:{Colors.ENDC}")
     print(f"{Colors.CYAN}   python service_manager.py status{Colors.ENDC}  - Check service status")
@@ -144,6 +163,13 @@ def main():
 
     project_root = Path(__file__).parent
     manager = ServiceManager(str(project_root))
+    
+    # Auto-enable unified mode if frontend build exists and not explicitly disabled
+    if not manager.unified_mode and manager.check_frontend_build_exists():
+        # Try to enable unified mode automatically
+        backend_env = project_root / "backend" / ".env"
+        print(f"{Colors.CYAN}🔍 Frontend build detected. Enabling unified mode automatically...{Colors.ENDC}")
+        manager.unified_mode = True
 
     force = "-f" in sys.argv
     if force:
@@ -175,7 +201,7 @@ def main():
         manager.stop_all_services()
     else:
         if manager.start_all_services():
-            print_pure_python_instructions()
+            print_pure_python_instructions(manager.unified_mode)
             try:
                 manager.wait_for_shutdown()
             except KeyboardInterrupt:

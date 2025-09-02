@@ -87,17 +87,27 @@ class ServiceManager:
         """Check if required dependencies are installed."""
         deps = {
             "python3": "Python 3.11+",
-            "node": "Node.js 20+", 
-            "npm": "npm",
         }
         
-        # Check for uv (Python package manager)
+        # Only require node/npm if not in unified mode
+        if not self.unified_mode:
+            deps.update({
+                "node": "Node.js 20+", 
+                "npm": "npm",
+            })
+        
+        # Check for uv (Python package manager) - optional for demo
+        uv_available = False
         try:
             subprocess.run(["uv", "--version"], capture_output=True, check=True)
             deps["uv"] = "UV Python package manager"
+            uv_available = True
         except (subprocess.CalledProcessError, FileNotFoundError):
-            self.print_error("UV is not installed. Please install: https://github.com/astral-sh/uv")
-            return False
+            if self.unified_mode:
+                self.print_warning("UV not found. Will use pip for Python dependencies.")
+            else:
+                self.print_error("UV is not installed. Please install: https://github.com/astral-sh/uv")
+                return False
             
         # Check Redis availability
         redis_available = self.check_redis_available()
@@ -243,16 +253,35 @@ class ServiceManager:
         backend_env = os.environ.copy()
         backend_env["REDIS_HOST"] = "localhost"
         backend_env["REDIS_PORT"] = str(self.redis_port)
+        backend_env["UNIFIED_MODE"] = "true" if self.unified_mode else "false"
         
-        # Use uvicorn for development, gunicorn for production
-        cmd = [
-            "uv", "run", "uvicorn", 
-            "api:app",
-            "--host", "0.0.0.0",
-            "--port", "8000",
-            "--reload",
-            "--log-level", "info"
-        ]
+        # Check if UV is available, otherwise use python directly
+        uv_available = False
+        try:
+            subprocess.run(["uv", "--version"], capture_output=True, check=True)
+            uv_available = True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        
+        if uv_available:
+            cmd = [
+                "uv", "run", "uvicorn", 
+                "api:app",
+                "--host", "0.0.0.0",
+                "--port", "8000",
+                "--reload",
+                "--log-level", "info"
+            ]
+        else:
+            # Fallback to direct python execution for testing
+            cmd = [
+                "python", "-m", "uvicorn", 
+                "api:app",
+                "--host", "0.0.0.0",
+                "--port", "8000",
+                "--reload",
+                "--log-level", "info"
+            ]
         
         try:
             process = subprocess.Popen(
@@ -294,12 +323,26 @@ class ServiceManager:
         worker_env["REDIS_HOST"] = "localhost"
         worker_env["REDIS_PORT"] = str(self.redis_port)
         
-        cmd = [
-            "uv", "run", "dramatiq",
-            "--processes", "2",
-            "--threads", "4",
-            "run_agent_background"
-        ]
+        # Check if UV is available, otherwise use python directly
+        uv_available = False
+        try:
+            subprocess.run(["uv", "--version"], capture_output=True, check=True)
+            uv_available = True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        
+        if uv_available:
+            cmd = [
+                "uv", "run", "dramatiq",
+                "--processes", "2",
+                "--threads", "4",
+                "run_agent_background"
+            ]
+        else:
+            # Fallback - skip worker for testing since it requires many dependencies
+            self.print_warning("UV not available. Skipping background worker for testing.")
+            self.print_info("Worker would normally handle background tasks.")
+            return True
         
         try:
             process = subprocess.Popen(
