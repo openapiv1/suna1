@@ -1,5 +1,10 @@
 'use client';
 
+// Required for static export - generate empty params for client-side routing
+export async function generateStaticParams(): Promise<{ accountSlug: string }[]> {
+  return [];
+}
+
 import { redirect } from 'next/navigation';
 import React from 'react';
 

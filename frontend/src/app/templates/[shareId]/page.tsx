@@ -1,5 +1,10 @@
 'use client';
 
+// Required for static export - generate empty params for client-side routing
+export async function generateStaticParams(): Promise<{ shareId: string }[]> {
+  return [];
+}
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
