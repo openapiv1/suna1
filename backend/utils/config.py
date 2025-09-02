@@ -385,8 +385,9 @@ class Configuration:
         
         Can be overridden via MAX_PARALLEL_AGENT_RUNS environment variable.
         Defaults:
-        - Production: 3
-        - Local/Staging: 999999 (effectively infinite)
+        - Production: 20
+        - Staging: 50
+        - Local: 999999 (effectively infinite)
         """
         # Check for environment variable override first
         if self._MAX_PARALLEL_AGENT_RUNS_ENV is not None:
@@ -397,9 +398,11 @@ class Configuration:
         
         # Environment-based defaults
         if self.ENV_MODE == EnvMode.PRODUCTION:
-            return 3
+            return 20
+        elif self.ENV_MODE == EnvMode.STAGING:
+            return 50
         else:
-            # Local and staging: effectively infinite
+            # Local: effectively infinite for development
             return 999999
     
     @property

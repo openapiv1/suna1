@@ -91,10 +91,14 @@ TAVILY_API_KEY=your-tavily-key
 FIRECRAWL_API_KEY=your-firecrawl-key
 FIRECRAWL_URL=https://api.firecrawl.dev
 
-# Agent Execution
+# Agent Execution & Scaling
 DAYTONA_API_KEY=your-daytona-key
 DAYTONA_SERVER_URL=https://app.daytona.io/api
 DAYTONA_TARGET=us
+
+# Optional: Override default parallel agent run limits
+# Defaults: production=20, staging=50, local=unlimited
+# MAX_PARALLEL_AGENT_RUNS=20
 
 WEBHOOK_BASE_URL=https://yourdomain.com
 
