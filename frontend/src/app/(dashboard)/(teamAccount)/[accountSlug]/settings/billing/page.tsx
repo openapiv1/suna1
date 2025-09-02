@@ -1,5 +1,10 @@
 'use client';
 
+// Required for static export - generate empty params for client-side routing
+export async function generateStaticParams(): Promise<{ accountSlug: string }[]> {
+  return [];
+}
+
 import React, { useState } from 'react';
 import { BillingModal } from '@/components/billing/billing-modal';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';

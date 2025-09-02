@@ -1,5 +1,10 @@
 'use client';
 
+// Required for static export - generate empty params for client-side routing
+export async function generateStaticParams(): Promise<{ agentId: string }[]> {
+  return [];
+}
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Play, Plus, RotateCcw } from 'lucide-react';

@@ -1,5 +1,10 @@
 'use client';
 
+// Required for static export - generate empty params for client-side routing
+export async function generateStaticParams(): Promise<{ agentId: string, workflowId: string }[]> {
+  return [];
+}
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
