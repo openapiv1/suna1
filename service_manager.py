@@ -42,6 +42,34 @@ class ServiceManager:
         self.redis_process = None
         self.redis_port = 6379
         self.redis_data_dir = self.project_root / "redis_data"
+        self.unified_mode = self.check_unified_mode()
+        
+    def check_unified_mode(self) -> bool:
+        """Check if unified mode is enabled."""
+        # Check environment variable first
+        if os.getenv("UNIFIED_MODE", "").lower() == "true":
+            return True
+            
+        # Check backend .env file
+        backend_env = self.backend_dir / ".env"
+        if backend_env.exists():
+            try:
+                with open(backend_env, 'r') as f:
+                    content = f.read()
+                    for line in content.split('\n'):
+                        if line.strip().startswith("UNIFIED_MODE="):
+                            value = line.split('=', 1)[1].strip()
+                            return value.lower() == "true"
+            except Exception:
+                pass
+                
+        return False
+        
+    def check_frontend_build_exists(self) -> bool:
+        """Check if frontend build exists for unified mode."""
+        build_dir = self.frontend_dir / "out"
+        index_file = build_dir / "index.html"
+        return build_dir.exists() and index_file.exists()
         
     def print_info(self, message: str):
         print(f"{Colors.CYAN}ℹ️  {message}{Colors.ENDC}")
@@ -377,7 +405,14 @@ class ServiceManager:
 
     def start_all_services(self) -> bool:
         """Start all services in the correct order."""
-        self.print_info("Starting all Suna services...")
+        if self.unified_mode:
+            self.print_info("🔗 Starting Suna in unified mode...")
+            if not self.check_frontend_build_exists():
+                self.print_warning("Frontend build not found for unified mode")
+                self.print_info("Run 'python build_unified.py' first to build the frontend")
+                return False
+        else:
+            self.print_info("Starting all Suna services...")
         
         if not self.check_dependencies():
             return False
@@ -396,15 +431,22 @@ class ServiceManager:
             self.stop_all_services()
             return False
             
-        # Start frontend
-        if not self.start_frontend():
-            self.stop_all_services()
-            return False
-            
+        # Start frontend only if not in unified mode
+        if not self.unified_mode:
+            if not self.start_frontend():
+                self.stop_all_services()
+                return False
+                
         self.running = True
-        self.print_success("All services started successfully!")
-        self.print_info("Access Suna at: http://localhost:3000")
-        self.print_info("API available at: http://localhost:8000")
+        
+        if self.unified_mode:
+            self.print_success("🚀 Unified Suna application started successfully!")
+            self.print_info("🌐 Access Suna at: http://localhost:8000")
+            self.print_info("📡 API available at: http://localhost:8000/api")
+        else:
+            self.print_success("All services started successfully!")
+            self.print_info("Access Suna at: http://localhost:3000")
+            self.print_info("API available at: http://localhost:8000")
         
         return True
 

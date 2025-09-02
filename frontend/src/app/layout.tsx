@@ -1,7 +1,6 @@
 import { ThemeProvider } from '@/components/home/theme-provider';
 import { siteConfig } from '@/lib/site';
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
@@ -12,15 +11,8 @@ import Script from 'next/script';
 import { PostHogIdentify } from '@/components/posthog-identify';
 import '@/lib/polyfills'; // Load polyfills early
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
+// For export mode, just use empty font variables and rely on system fonts
+const fontVariables = process.env.NEXT_OUTPUT === 'export' ? '' : 'font-geist-sans font-geist-mono';
 
 export const viewport: Viewport = {
   themeColor: 'black',
@@ -129,7 +121,7 @@ export default function RootLayout({
       </head>
 
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-background`}
+        className={`${fontVariables} antialiased font-sans bg-background`}
       >
         <noscript>
           <iframe
